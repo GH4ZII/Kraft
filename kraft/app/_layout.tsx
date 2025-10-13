@@ -1,24 +1,24 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+// app/_layout.tsx
+import { Slot } from "expo-router";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
+import { router } from "expo-router";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+function Gate() {
+  const { user, loading } = useAuth();
+  useEffect(() => {
+    if (!loading) {
+      if (!user) router.replace("/(auth)/sign-in");
+      else router.replace("/(tabs)");
+    }
+  }, [user, loading]);
+  return <Slot />; // viser child layout (auth eller tabs)
+}
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <AuthProvider>
+      <Gate />
+    </AuthProvider>
   );
 }
