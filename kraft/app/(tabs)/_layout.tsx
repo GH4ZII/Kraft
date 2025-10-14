@@ -15,6 +15,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="leaderboard"
+        options={{
+          tabBarLabel: "Leaderboard",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="podium-outline" color={color} size={size} />
+          ),
+        }}
+      />
+            <Tabs.Screen
         name="log"
         options={{
           tabBarLabel: "Log",
@@ -24,11 +33,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="leaderboard"
+        name="friends"
         options={{
-          tabBarLabel: "Leaderboard",
+          tabBarLabel: "Friends",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="podium-outline" color={color} size={size} />
+            <Ionicons name="people-outline" color={color} size={size} />
           ),
         }}
       />

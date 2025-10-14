@@ -6,8 +6,8 @@ import { auth } from "@/services/firebase";
 import { Link, router } from "expo-router";
 
 export default function SignIn() {
-  const [email, setEmail] = useState("test@example.com"); // Forhåndsutfylt email
-  const [pass, setPass] = useState("password123"); // Forhåndsutfylt passord
+  const [email, setEmail] = useState("admin@example.com"); // Forhåndsutfylt email
+  const [pass, setPass] = useState("Password1."); // Forhåndsutfylt passord
   const [err, setErr] = useState("");
 
   const submit = async () => {

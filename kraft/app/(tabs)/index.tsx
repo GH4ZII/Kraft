@@ -13,8 +13,8 @@ import {
 } from "@/services/database";
 
 export default function Home() {
-  const [userName, setUserName] = useState("Ola");
-  const [weeklyWorkouts, setWeeklyWorkouts] = useState(3);
+  const [userName, setUserName] = useState("");
+  const [weeklyWorkouts, setWeeklyWorkouts] = useState(0);
   const [streak, setStreak] = useState(7);
   const [lastWorkout, setLastWorkout] = useState<Workout | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
