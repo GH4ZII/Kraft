@@ -137,5 +137,121 @@ export const updateUserStreak = async (userId: string) => {
 // ============== WORKOUT FUNCTIONS ==============
 
 export const createWorkout = async (workout: Omit<Workout, "id">) => {
+const workoutRef = collection(firestore, "workouts");
+const docRef = await addDoc(workoutRef, {
+    ...workout,
+    date: Timestamp.fromDate(workout.date),
+});
 
+await updateUserStreak(workout.userId);
+    return docRef.id;
+};
 
+export const getUserWorkouts = async (userId: string, limitCount: number = 10) => {
+    const workoutsRef = collection(firestore, "workouts");
+    const q = query(
+        workoutsRef,
+        where("userId", "==", userId),
+        orderBy("date", "desc"),
+        limit(limitCount)
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      date: doc.data().date.toDate(),
+    })) as Workout[];
+  };
+
+  export const getLastWorkout = async (userId: string): Promise<Workout | null> => {
+    const workouts = await getUserWorkouts(userId, 1);
+    return workouts.length > 0 ? workouts[0] : null;
+  };
+
+  // ============== ACTIVITY FUNCTIONS ==============
+
+  export const createActivity = async (activity: Omit<Activity, "id">) => {
+    const activityRef = collection(firestore, "activities");
+    await addDoc(activityRef, {
+        ...activity,
+        timestamp: Timestamp.fromDate(activity.timestamp),
+    });
+  };
+  
+  export const getActivityFeed = async (limitCount: number = 20): Promise<Activity[]> => {
+    const activitiesRef = collection(firestore, "activities");
+    const q = query(
+        activitiesRef,
+        orderBy("timestamp", "desc"),
+        limit(limitCount)
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp.toDate(),
+    })) as Activity[];
+  };
+
+  export const subscribeToActivityFeed = (callback: (activities: Activity[]) => void) => {
+    const activitiesRef = collection(firestore, "activities");
+    const q = query(
+        activitiesRef,
+        orderBy("timestamp", "desc"),
+        limit(20)
+    );
+    
+    return onSnapshot(q, (snapshot) => {
+        const activities = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+            timestamp: doc.data().timestamp.toDate(),
+        })) as Activity[];
+        callback(activities);
+    });
+  };
+
+  // ============== FRIEND FUNCTIONS ==============
+
+  export const sendFriendRequest = async (userId: string, friendId: string) => {
+    const friendRef = collection(firestore, "friends");
+    await addDoc(friendRef, {
+        userId,
+        friendId,
+        status: "pending",
+        createdAt: Timestamp.now(),
+    });
+  };
+
+  export const acceptFriendRequest = async (friendRequestId: string) => {
+    const friendRef = doc(firestore, "friends", friendRequestId);
+    await updateDoc(friendRef, { status: "accepted" });
+  };
+  
+  export const getUserFriends = async (userId: string): Promise<Friend[]> => {
+    const friendsRef = collection(firestore, "friends");
+    const q = query(
+        friendsRef,
+        where("userId", "==", userId),
+        where("status", "==", "accepted"),
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt.toDate(),
+    })) as Friend[];
+  };
+
+  // ============== HELPER FUNCTIONS ==============
+
+  export const getWorkoutsThisWeek = async (userId: string): Promise<number> => {
+    const workouts = await getUserWorkouts(userId, 100);
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    return workouts.filter(w => w.date >= weekAgo).length;
+  };
