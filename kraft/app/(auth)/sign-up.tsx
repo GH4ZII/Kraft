@@ -3,8 +3,7 @@ import { View, Text, TextInput, Button } from "react-native";
 import { useState } from "react";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/services/firebase";
-import { db } from "@/services/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { createUserProfile } from "@/services/database";
 import { Link, router } from "expo-router";
 
 export default function SignUp() {
@@ -17,17 +16,16 @@ export default function SignUp() {
     setErr("");
     try {
       const cred = await createUserWithEmailAndPassword(auth, email.trim(), pass);
+      
+      // Oppdater Firebase Auth profil
       await updateProfile(cred.user, { displayName: username });
-      await setDoc(doc(db, "users", cred.user.uid), {
-        uid: cred.user.uid,
-        username,
-        hideWeights: false,
-        followers: [],
-        following: [],
-        weeklyWorkoutsCount: 0,
-        maxLifts: {},
-        createdAt: Date.now(),
+      
+      // Lag brukerprofil i Firestore (bruk database.ts funksjonen)
+      await createUserProfile(cred.user.uid, {
+        email: email.trim(),
+        displayName: username.trim(),
       });
+      
       router.replace("/(tabs)/");
     } catch (e: any) {
       setErr(e.message ?? "Sign-up failed");
