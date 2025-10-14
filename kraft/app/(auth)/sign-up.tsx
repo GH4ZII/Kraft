@@ -42,7 +42,7 @@ export default function SignUp() {
         placeholder="Username"
         value={username}
         onChangeText={setUsername}
-        style={{ borderWidth: 1, padding: 12, borderRadius: 8 }}
+        style={{ borderWidth: 1, padding: 12, borderRadius: 8, color: "#000" }}
       />
       <TextInput
         placeholder="Email"
@@ -50,14 +50,14 @@ export default function SignUp() {
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
-        style={{ borderWidth: 1, padding: 12, borderRadius: 8 }}
+        style={{ borderWidth: 1, padding: 12, borderRadius: 8, color: "#000" }}
       />
       <TextInput
         placeholder="Password"
         secureTextEntry
         value={pass}
         onChangeText={setPass}
-        style={{ borderWidth: 1, padding: 12, borderRadius: 8 }}
+        style={{ borderWidth: 1, padding: 12, borderRadius: 8, color: "#000" }}
       />
       <Button title="Create" onPress={submit} />
       <Link href="/(auth)/sign-in" style={{ marginTop: 12 }}>

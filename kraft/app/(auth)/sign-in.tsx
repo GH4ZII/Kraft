@@ -6,8 +6,8 @@ import { auth } from "@/services/firebase";
 import { Link, router } from "expo-router";
 
 export default function SignIn() {
-  const [email, setEmail] = useState("");
-  const [pass, setPass] = useState("");
+  const [email, setEmail] = useState("test@example.com"); // Forhåndsutfylt email
+  const [pass, setPass] = useState("password123"); // Forhåndsutfylt passord
   const [err, setErr] = useState("");
 
   const submit = async () => {
@@ -25,19 +25,19 @@ export default function SignIn() {
       <Text style={{ fontSize: 24, fontWeight: "700" }}>Welcome back</Text>
       {!!err && <Text style={{ color: "tomato" }}>{err}</Text>}
       <TextInput
-        placeholder="Email"
+        placeholder="Eksempel: test@example.com"
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
         onChangeText={setEmail}
-        style={{ borderWidth: 1, padding: 12, borderRadius: 8 }}
+        style={{ borderWidth: 1, padding: 12, borderRadius: 8, color: "#000" }}
       />
       <TextInput
-        placeholder="Password"
+        placeholder="Eksempel: password123"
         secureTextEntry
         value={pass}
         onChangeText={setPass}
-        style={{ borderWidth: 1, padding: 12, borderRadius: 8 }}
+        style={{ borderWidth: 1, padding: 12, borderRadius: 8, color: "#000" }}
       />
       <Button title="Sign in" onPress={submit} />
       <Link href="/(auth)/sign-up" style={{ marginTop: 12 }}>

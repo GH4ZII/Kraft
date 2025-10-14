@@ -1,4 +1,4 @@
-import { View, Text, Button, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useOnboarding } from '@/hooks/useOnboarding';
@@ -40,8 +40,6 @@ export default function Onboarding() {
 
   return (
     <View style={styles.container}>
-      {/* Skip button */}
-      <Button title="Hopp over" onPress={handleSkip} color="#007AFF" />
 
       {/* Content */}
       <View style={styles.content}>
@@ -61,14 +59,27 @@ export default function Onboarding() {
           />
         ))}
       </View>
-
-      {/* Next button */}
-      <Button
-        title={currentSlide === slides.length - 1 ? 'Kom i gang' : 'Neste'}
-        onPress={handleNext}
-        color="#007AFF"
-      />
+      <View style={styles.buttonContainer}>
+        {/* Kom i gang button */}
+        <TouchableOpacity 
+          style={styles.primaryButton}
+          onPress={handleNext}
+        >
+          <Text style={styles.primaryButtonText}>
+            {currentSlide === slides.length - 1 ? 'Kom i gang' : 'Neste'}
+          </Text>
+        </TouchableOpacity>
+        
+        {/* Skip button */}
+        <TouchableOpacity 
+          style={styles.skipButton}
+          onPress={handleSkip}
+        >
+          <Text style={styles.skipButtonText}>Hopp over</Text>
+        </TouchableOpacity>
+      </View>
     </View>
+
   );
 }
 
@@ -79,18 +90,20 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
     paddingBottom: 40,
+    backgroundColor: "white",
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    color: "white",
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     marginBottom: 16,
     textAlign: 'center',
-    color: '#000',
+    color: '#666',
   },
   subtitle: {
     fontSize: 18,
@@ -112,8 +125,32 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   activeDot: {
-    backgroundColor: '#007AFF',
+    backgroundColor: 'green',
     width: 12,
     height: 12,
+  },
+  buttonContainer: {
+    gap: 12,
+  },
+  primaryButton: {
+    backgroundColor: '#34C759',
+    borderRadius: 25,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    color: '#fff', // Hvit tekst
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  skipButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 8,
+  },
+  skipButtonText: {
+    color: '#9E9E9E', // Blå tekst
+    fontSize: 16,
   },
 });
