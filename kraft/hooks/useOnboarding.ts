@@ -32,7 +32,7 @@ export function useOnboarding() {
         }
         };
 
-    return { hasSeenOnboarding: false, loading: false, completeOnboarding };
+    return { hasSeenOnboarding, loading, completeOnboarding };
 };
     
     
