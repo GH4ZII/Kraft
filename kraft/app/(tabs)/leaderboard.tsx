@@ -1,28 +1,43 @@
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Share, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-
-interface LeaderboardUser {
-  id: string;
-  name: string;
-  points: number;
-  workouts: number;
-  isCurrentUser: boolean;
-  avatar?: string;
-}
-
-const mockUsers: LeaderboardUser[] = [
-  { id: "1", name: "Ida", points: 312, workouts: 7, isCurrentUser: false },
-  { id: "2", name: "Jonas", points: 298, workouts: 6, isCurrentUser: false },
-  { id: "3", name: "Du", points: 274, workouts: 5, isCurrentUser: true },
-  { id: "4", name: "Selma", points: 221, workouts: 5, isCurrentUser: false },
-  { id: "5", name: "Maja", points: 190, workouts: 4, isCurrentUser: false },
-];
+import { useState, useEffect } from "react";
+import { auth } from "@/services/firebase";
+import { getLeaderboardUsers, getUserFriendsLeaderboard, LeaderboardUser } from "@/services/database";
+import { router } from "expo-router";
 
 export default function Leaderboard() {
-  const [selectedPeriod, setSelectedPeriod] = useState("Uke");
-  const [selectedType, setSelectedType] = useState("Venner");
+  const [selectedPeriod, setSelectedPeriod] = useState<"week" | "month" | "all">("week");
+  const [selectedType, setSelectedType] = useState<"all" | "friends">("all");
+  const [users, setUsers] = useState<LeaderboardUser[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadLeaderboard();
+  }, [selectedPeriod, selectedType]);
+
+  const loadLeaderboard = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      let leaderboardData: LeaderboardUser[];
+
+      if (selectedType === "friends") {
+        leaderboardData = await getUserFriendsLeaderboard(user.uid, selectedPeriod);
+      } else {
+        leaderboardData = await getLeaderboardUsers(user.uid, selectedPeriod);
+      }
+
+      setUsers(leaderboardData);
+    } catch (error) {
+      console.error("Error loading leaderboard:", error);
+      Alert.alert("Feil", "Kunne ikke laste leaderboard");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -34,6 +49,45 @@ export default function Leaderboard() {
         return "🥉";
       default:
         return rank;
+    }
+  };
+
+  const handleFindFriends = () => {
+    router.push("/(tabs)/friends");
+  };
+
+  const handleShareProgress = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const currentUser = users.find((u) => u.isCurrentUser);
+    if (!currentUser) return;
+
+    try {
+      await Share.share({
+        message: `Jeg er på plass ${currentUser.points} i Kraft leaderboard! 💪\n\nPoeng: ${currentUser.points}\nØkter: ${currentUser.workouts}\nStreak: ${currentUser.streak} dager`,
+      });
+    } catch (error) {
+      console.error("Error sharing:", error);
+    }
+  };
+
+  const handleSetGoal = () => {
+    Alert.alert(
+      "Sett ukesmål",
+      "Dette kommer snart! Du vil kunne sette mål for antall økter eller poeng per uke.",
+      [{ text: "OK" }]
+    );
+  };
+
+  const getPeriodLabel = () => {
+    switch (selectedPeriod) {
+      case "week":
+        return "Uke";
+      case "month":
+        return "Måned";
+      case "all":
+        return "Alltid";
     }
   };
 
@@ -62,26 +116,26 @@ export default function Leaderboard() {
         {/* Period Filter */}
         <View style={styles.filterContainer}>
           <TouchableOpacity
-            style={[styles.filterButton, selectedPeriod === "Uke" && styles.filterButtonActive]}
-            onPress={() => setSelectedPeriod("Uke")}
+            style={[styles.filterButton, selectedPeriod === "week" && styles.filterButtonActive]}
+            onPress={() => setSelectedPeriod("week")}
           >
-            <Text style={[styles.filterText, selectedPeriod === "Uke" && styles.filterTextActive]}>
+            <Text style={[styles.filterText, selectedPeriod === "week" && styles.filterTextActive]}>
               Uke
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, selectedPeriod === "Måned" && styles.filterButtonActive]}
-            onPress={() => setSelectedPeriod("Måned")}
+            style={[styles.filterButton, selectedPeriod === "month" && styles.filterButtonActive]}
+            onPress={() => setSelectedPeriod("month")}
           >
-            <Text style={[styles.filterText, selectedPeriod === "Måned" && styles.filterTextActive]}>
+            <Text style={[styles.filterText, selectedPeriod === "month" && styles.filterTextActive]}>
               Måned
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, selectedPeriod === "Alltid" && styles.filterButtonActive]}
-            onPress={() => setSelectedPeriod("Alltid")}
+            style={[styles.filterButton, selectedPeriod === "all" && styles.filterButtonActive]}
+            onPress={() => setSelectedPeriod("all")}
           >
-            <Text style={[styles.filterText, selectedPeriod === "Alltid" && styles.filterTextActive]}>
+            <Text style={[styles.filterText, selectedPeriod === "all" && styles.filterTextActive]}>
               Alltid
             </Text>
           </TouchableOpacity>
@@ -90,73 +144,69 @@ export default function Leaderboard() {
         {/* Type Filter */}
         <View style={styles.filterContainer}>
           <TouchableOpacity
-            style={[styles.filterButton, styles.filterButtonSecondary, selectedType === "Ukens poeng" && styles.filterButtonActive]}
-            onPress={() => setSelectedType("Ukens poeng")}
+            style={[styles.filterButton, styles.filterButtonSecondary, selectedType === "all" && styles.filterButtonActive]}
+            onPress={() => setSelectedType("all")}
           >
-            <Ionicons name="trophy-outline" size={18} color={selectedType === "Ukens poeng" ? "#fff" : "#000"} />
-            <Text style={[styles.filterText, selectedType === "Ukens poeng" && styles.filterTextActive]}>
-              Ukens poeng
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterButton, styles.filterButtonSecondary, selectedType === "Venner" && styles.filterButtonActive]}
-            onPress={() => setSelectedType("Venner")}
-          >
-            <Text style={[styles.filterText, selectedType === "Venner" && styles.filterTextActive]}>
-              Venner
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterButton, styles.filterButtonSecondary, selectedType === "Lokalt" && styles.filterButtonActive]}
-            onPress={() => setSelectedType("Lokalt")}
-          >
-            <Text style={[styles.filterText, selectedType === "Lokalt" && styles.filterTextActive]}>
-              Lokalt
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterButton, styles.filterButtonSecondary, selectedType === "Globalt" && styles.filterButtonActive]}
-            onPress={() => setSelectedType("Globalt")}
-          >
-            <Text style={[styles.filterText, selectedType === "Globalt" && styles.filterTextActive]}>
+            <Ionicons name="trophy-outline" size={18} color={selectedType === "all" ? "#fff" : "#000"} />
+            <Text style={[styles.filterText, selectedType === "all" && styles.filterTextActive]}>
               Globalt
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterButton, styles.filterButtonSecondary, selectedType === "friends" && styles.filterButtonActive]}
+            onPress={() => setSelectedType("friends")}
+          >
+            <Text style={[styles.filterText, selectedType === "friends" && styles.filterTextActive]}>
+              Venner
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Leaderboard List */}
-        <View style={styles.leaderboardList}>
-          {mockUsers.map((user, index) => (
-            <View
-              key={user.id}
-              style={[
-                styles.leaderboardItem,
-                user.isCurrentUser && styles.currentUserItem
-              ]}
-            >
-              <View style={styles.rankColumn}>
-                <Text style={styles.rankText}>{getRankIcon(index + 1)}</Text>
-              </View>
-              
-              <View style={styles.avatarColumn}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{user.name.charAt(0)}</Text>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Laster...</Text>
+          </View>
+        ) : users.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="trophy-outline" size={64} color="#ccc" />
+            <Text style={styles.emptyText}>Ingen data ennå</Text>
+            <Text style={styles.emptySubtext}>Logg dine første økter for å komme på leaderboard!</Text>
+          </View>
+        ) : (
+          <View style={styles.leaderboardList}>
+            {users.map((user, index) => (
+              <View
+                key={user.id}
+                style={[
+                  styles.leaderboardItem,
+                  user.isCurrentUser && styles.currentUserItem
+                ]}
+              >
+                <View style={styles.rankColumn}>
+                  <Text style={styles.rankText}>{getRankIcon(index + 1)}</Text>
+                </View>
+                
+                <View style={styles.avatarColumn}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{user.name.charAt(0)}</Text>
+                  </View>
+                </View>
+                
+                <View style={styles.userInfoColumn}>
+                  <Text style={styles.userName}>{user.name}</Text>
+                  <Text style={styles.userStats}>
+                    {user.points} poeng • {user.workouts} økter
+                  </Text>
+                </View>
+                
+                <View style={styles.pointsColumn}>
+                  <Text style={styles.pointsText}>{user.points}</Text>
                 </View>
               </View>
-              
-              <View style={styles.userInfoColumn}>
-                <Text style={styles.userName}>{user.name}</Text>
-                <Text style={styles.userStats}>
-                  {user.points} poeng • {user.workouts} økter
-                </Text>
-              </View>
-              
-              <View style={styles.pointsColumn}>
-                <Text style={styles.pointsText}>{user.points}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
 
         {/* Weekly Goal Section */}
         <View style={styles.goalSection}>
@@ -169,18 +219,18 @@ export default function Leaderboard() {
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.goalButton}>
+          <TouchableOpacity style={styles.goalButton} onPress={handleSetGoal}>
             <Text style={styles.goalButtonText}>Velg mål</Text>
           </TouchableOpacity>
         </View>
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButtonSecondary}>
+          <TouchableOpacity style={styles.actionButtonSecondary} onPress={handleFindFriends}>
             <Ionicons name="people-outline" size={20} color="#000" />
             <Text style={styles.actionButtonSecondaryText}>Finn venner</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButtonPrimary}>
+          <TouchableOpacity style={styles.actionButtonPrimary} onPress={handleShareProgress}>
             <Ionicons name="share-outline" size={20} color="#fff" />
             <Text style={styles.actionButtonPrimaryText}>Del fremgang</Text>
           </TouchableOpacity>
@@ -410,5 +460,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 8,
   },
 });

@@ -255,3 +255,103 @@ export const getUserWorkouts = async (userId: string, limitCount: number = 10) =
     
     return workouts.filter(w => w.date >= weekAgo).length;
   };
+
+  // ============== LEADERBOARD FUNCTIONS ==============
+  export interface LeaderboardUser {
+    id: string;
+    name: string;
+    points: number;
+    workouts: number;
+    streak: number;
+    isCurrentUser: boolean;
+  }
+
+  export const getLeaderboardUsers = async (
+    userId: string,
+    period: "week" | "month" | "all" = "week"
+  ): Promise<LeaderboardUser[]> => {
+    const now = new Date();
+    let startDate: Date;
+
+    // Bruker velger periode
+    switch (period) {
+        case "week":
+            startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+        case "month":
+            startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+        case "all":
+            startDate = new Date(0);
+            break;
+    }
+
+    // Hent økter
+    const workoutsRef = collection(firestore, "workouts");
+    const q = query(
+        workoutsRef,
+        where("date", ">=", Timestamp.fromDate(startDate)),
+        orderBy("date", "desc")
+    );
+
+
+    const workoutsSnapshot = await getDocs(q);
+    const userStats: Record<string, { workouts: number, points: number, streak: number }> = {};
+
+    // Beregn statistikk
+    workoutsSnapshot.docs.forEach(doc => {
+        const workout = doc.data();
+        const uid = workout.userId;
+
+        if (!userStats[uid]) {
+            userStats[uid] = { workouts: 0, points: 0, streak: 0 };
+        }
+
+        userStats[uid].workouts++;
+        const exerciseCount = workout.exercises?.length || 0;
+        userStats[uid].points += 10 + exerciseCount;
+    });
+
+    // Hent brukerinfo
+  const usersRef = collection(firestore, "users");
+  const usersSnapshot = await getDocs(usersRef);
+
+  const leaderboard: LeaderboardUser[] = [];
+
+  usersSnapshot.docs.forEach((doc) => {
+    const userData = doc.data();
+    const uid = doc.id;
+    const stats = userStats[uid];
+
+    if (stats) {
+      leaderboard.push({
+        id: uid,
+        name: userData.displayName || userData.username || "Bruker",
+        points: stats.points,
+        workouts: stats.workouts,
+        streak: userData.streak || 0,
+        isCurrentUser: uid === userId,
+      });
+    }
+  });
+
+  // Sorter etter poeng
+  leaderboard.sort((a, b) => b.points - a.points);
+
+  return leaderboard;
+};
+
+export const getUserFriendsLeaderboard = async (
+  userId: string,
+  period: "week" | "month" | "all" = "week"
+): Promise<LeaderboardUser[]> => {
+  // Hent venner
+  const friends = await getUserFriends(userId);
+  const friendIds = friends.map((f) => f.friendId);
+
+  // Hent alle brukere (inkludert deg selv og venner)
+  const allUsers = await getLeaderboardUsers(userId, period);
+  
+  // Filtrer til kun venner + deg selv
+  return allUsers.filter((user) => user.id === userId || friendIds.includes(user.id));
+};
