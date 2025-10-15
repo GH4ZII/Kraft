@@ -6,7 +6,7 @@ import { auth } from "@/services/firebase";
 import { createWorkout, createActivity } from "@/services/database";
 import { router } from "expo-router";
 import ExercisePickerModal from "./ExercisePickerModal";
-import { Swipeable } from 'react-native-gesture-handler';
+import { SwipeListView } from 'react-native-swipe-list-view';
 
 type Exercise = {
   name: string;
@@ -118,6 +118,114 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
     setExercises([...exercises, { name: exerciseName, sets: [{ reps: 0, weight: 0, restTime: 90 }] }]);
   };
 
+  // For å konvertere sets til SwipeListView format
+  const convertSetsToSwipeData = (sets: Array<{ reps: number; weight: number; restTime: number }>) => {
+    return sets.map((set, index) => ({
+      key: index.toString(),
+      set: set,
+      index: index
+    }));
+  };
+
+  // For å slette et sett i SwipeListView
+  const deleteSet = (exerciseIndex: number, setKey: string) => {
+    const updatedExercises = [...exercises];
+    const setIndex = parseInt(setKey);
+    if (updatedExercises[exerciseIndex].sets.length > 1) {
+      updatedExercises[exerciseIndex].sets.splice(setIndex, 1);
+      setExercises(updatedExercises);
+    }
+  };
+
+  // Render funksjon for hvert sett i SwipeListView
+  const renderSetItem = (data: any, exerciseIndex: number) => (
+    <View style={styles.setRow}>
+      <View style={styles.setNumberContainer}>
+        <Text style={styles.setNumber}>Sett {data.index + 1}</Text>
+      </View>
+      
+      <View style={styles.setInputsContainer}>
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Reps</Text>
+          <View style={styles.numberInputContainer}>
+            <TouchableOpacity 
+              style={styles.numberButton}
+              onPress={() => updateSetReps(exerciseIndex, data.index, Math.max(0, data.set.reps - 1))}
+            >
+              <Ionicons name="remove" size={16} color="#34C759" />
+            </TouchableOpacity>
+            <TextInput 
+              style={styles.numberInput}
+              value={data.set.reps.toString()}
+              onChangeText={(text) => {
+                const reps = parseInt(text) || 0;
+                updateSetReps(exerciseIndex, data.index, reps);
+              }}
+              keyboardType="numeric"
+              textAlign="center"
+            />
+            <TouchableOpacity 
+              style={styles.numberButton}
+              onPress={() => updateSetReps(exerciseIndex, data.index, data.set.reps + 1)}
+            >
+              <Ionicons name="add" size={16} color="#34C759" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Kg</Text>
+          <View style={styles.numberInputContainer}>
+            <TouchableOpacity 
+              style={styles.numberButton}
+              onPress={() => updateSetWeight(exerciseIndex, data.index, Math.max(0, data.set.weight - 2.5))}
+            >
+              <Ionicons name="remove" size={16} color="#34C759" />
+            </TouchableOpacity>
+            <TextInput 
+              style={styles.numberInput}
+              value={data.set.weight.toString()}
+              onChangeText={(text) => {
+                const weight = parseFloat(text) || 0;
+                updateSetWeight(exerciseIndex, data.index, weight);
+              }}
+              keyboardType="numeric"
+              textAlign="center"
+            />
+            <TouchableOpacity 
+              style={styles.numberButton}
+              onPress={() => updateSetWeight(exerciseIndex, data.index, data.set.weight + 2.5)}
+            >
+              <Ionicons name="add" size={16} color="#34C759" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+
+  // Render funksjon for swipe-actions
+  const renderHiddenItem = (data: any, exerciseIndex: number) => (
+    <View style={styles.hiddenItemContainer}>
+      <TouchableOpacity 
+        style={styles.deleteAction}
+        onPress={() => deleteSet(exerciseIndex, data.item.key)}
+      >
+        <Ionicons name="trash" size={20} color="#fff" />
+        <Text style={styles.deleteActionText}>Slett</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Håndterer swipe-verdier for automatisk sletting
+  const onSwipeValueChange = (swipeData: any, exerciseIndex: number) => {
+    const { key, value, direction } = swipeData;
+    // Hvis bruker swiper hele veien til venstre (negativ verdi)
+    if (direction === 'right' && value <= -190) {
+      deleteSet(exerciseIndex, key);
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -170,149 +278,21 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
                     </TouchableOpacity>
                   </View>
                   <View style={styles.setsContainer}>
-                  {exercise.sets.map((set, i) => (
-  exercise.sets.length > 1 ? (
-    <Swipeable
-      key={i}
-      renderRightActions={() => (
-        <TouchableOpacity 
-          style={styles.deleteAction}
-          onPress={() => removeSet(index, i)}
-        >
-          <Ionicons name="trash" size={20} color="#fff" />
-        </TouchableOpacity>
-      )}
-    >
-      <View style={styles.setRow}>
-        <View style={styles.setNumberContainer}>
-          <Text style={styles.setNumber}>Sett {i + 1}</Text>
-        </View>
-        
-        <View style={styles.setInputsContainer}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Reps</Text>
-            <View style={styles.numberInputContainer}>
-              <TouchableOpacity 
-                style={styles.numberButton}
-                onPress={() => updateSetReps(index, i, Math.max(0, set.reps - 1))}
-              >
-                <Ionicons name="remove" size={16} color="#34C759" />
-              </TouchableOpacity>
-              <TextInput 
-                style={styles.numberInput}
-                value={set.reps.toString()}
-                onChangeText={(text) => {
-                  const reps = parseInt(text) || 0;
-                  updateSetReps(index, i, reps);
-                }}
-                keyboardType="numeric"
-                textAlign="center"
-              />
-              <TouchableOpacity 
-                style={styles.numberButton}
-                onPress={() => updateSetReps(index, i, set.reps + 1)}
-              >
-                <Ionicons name="add" size={16} color="#34C759" />
-              </TouchableOpacity>
-            </View>
-          </View>
-          
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Kg</Text>
-            <View style={styles.numberInputContainer}>
-              <TouchableOpacity 
-                style={styles.numberButton}
-                onPress={() => updateSetWeight(index, i, Math.max(0, set.weight - 2.5))}
-              >
-                <Ionicons name="remove" size={16} color="#34C759" />
-              </TouchableOpacity>
-              <TextInput 
-                style={styles.numberInput}
-                value={set.weight.toString()}
-                onChangeText={(text) => {
-                  const weight = parseFloat(text) || 0;
-                  updateSetWeight(index, i, weight);
-                }}
-                keyboardType="numeric"
-                textAlign="center"
-              />
-              <TouchableOpacity 
-                style={styles.numberButton}
-                onPress={() => updateSetWeight(index, i, set.weight + 2.5)}
-              >
-                <Ionicons name="add" size={16} color="#34C759" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </View>
-    </Swipeable>
-  ) : (
-    <View key={i} style={styles.setRow}>
-      <View style={styles.setNumberContainer}>
-        <Text style={styles.setNumber}>Sett {i + 1}</Text>
-      </View>
-      
-      <View style={styles.setInputsContainer}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Reps</Text>
-          <View style={styles.numberInputContainer}>
-            <TouchableOpacity 
-              style={styles.numberButton}
-              onPress={() => updateSetReps(index, i, Math.max(0, set.reps - 1))}
-            >
-              <Ionicons name="remove" size={16} color="#34C759" />
-            </TouchableOpacity>
-            <TextInput 
-              style={styles.numberInput}
-              value={set.reps.toString()}
-              onChangeText={(text) => {
-                const reps = parseInt(text) || 0;
-                updateSetReps(index, i, reps);
-              }}
-              keyboardType="numeric"
-              textAlign="center"
-            />
-            <TouchableOpacity 
-              style={styles.numberButton}
-              onPress={() => updateSetReps(index, i, set.reps + 1)}
-            >
-              <Ionicons name="add" size={16} color="#34C759" />
-            </TouchableOpacity>
-          </View>
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Kg</Text>
-          <View style={styles.numberInputContainer}>
-            <TouchableOpacity 
-              style={styles.numberButton}
-              onPress={() => updateSetWeight(index, i, Math.max(0, set.weight - 2.5))}
-            >
-              <Ionicons name="remove" size={16} color="#34C759" />
-            </TouchableOpacity>
-            <TextInput 
-              style={styles.numberInput}
-              value={set.weight.toString()}
-              onChangeText={(text) => {
-                const weight = parseFloat(text) || 0;
-                updateSetWeight(index, i, weight);
-              }}
-              keyboardType="numeric"
-              textAlign="center"
-            />
-            <TouchableOpacity 
-              style={styles.numberButton}
-              onPress={() => updateSetWeight(index, i, set.weight + 2.5)}
-            >
-              <Ionicons name="add" size={16} color="#34C759" />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </View>
-  )
-))}
+                    <SwipeListView
+                      data={convertSetsToSwipeData(exercise.sets)}
+                      renderItem={({ item }) => renderSetItem(item, index)}
+                      renderHiddenItem={({ item }) => renderHiddenItem({ item }, index)}
+                      rightOpenValue={-80}
+                      disableRightSwipe={exercise.sets.length <= 1}
+                      keyExtractor={(item) => item.key}
+                      showsVerticalScrollIndicator={false}
+                      scrollEnabled={false}
+                      ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+                      closeOnRowPress={true}
+                      closeOnScroll={true}
+                      swipeToOpenPercent={80}
+                      onSwipeValueChange={(swipeData) => onSwipeValueChange(swipeData, index)}
+                    />
                     
                     {/* Legg til sett knapp */}
                     <TouchableOpacity 
@@ -474,6 +454,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginHorizontal: 0,
   },
   setNumber: {
     fontSize: 14,
@@ -631,9 +614,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#ff4444',
     justifyContent: 'center',
     alignItems: 'center',
-    width: 60,
-    marginBottom: 8,
+    width: 80,
     borderRadius: 8,
+    height: '100%',
+    marginLeft: 8,
+  },
+  hiddenItemContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    paddingRight: 8,
+    height: '100%',
+  },
+  deleteActionText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
   },
 });
 
