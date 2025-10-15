@@ -80,17 +80,6 @@ export default function Leaderboard() {
     );
   };
 
-  const getPeriodLabel = () => {
-    switch (selectedPeriod) {
-      case "week":
-        return "Uke";
-      case "month":
-        return "Måned";
-      case "all":
-        return "Alltid";
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>

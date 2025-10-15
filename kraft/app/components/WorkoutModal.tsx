@@ -23,10 +23,12 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // For å lagre som mal
   const saveAsTemplate = () => {
     Alert.alert("Lagre som mal", "Denne funksjonen kommer snart!");
   };
 
+  // For å starte økt
   const startWorkout = async () => {
     if (!auth.currentUser) return;
 
@@ -35,6 +37,7 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
       return;
     }
 
+    // Lagrer økta i db
     setSaving(true);
     try {
       await createWorkout({
@@ -45,6 +48,7 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
         date: new Date(),
       });
 
+      // Lagrer aktiviteten i db
       await createActivity({
         userId: auth.currentUser.uid,
         userName: auth.currentUser.displayName || "Bruker",
@@ -55,10 +59,11 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
         timestamp: new Date(),
       });
 
-      Alert.alert("Suksess", "Økt startet!");
-      onClose();
-      resetWorkout();
-      router.replace("/(tabs)");
+      
+      Alert.alert("Suksess", "Økt startet!"); // Viser suksessmelding
+      onClose(); // Lukker modalen
+      resetWorkout(); // Nullstiller feltene
+      router.replace("/(tabs)"); // går til dashboard
     } catch (error: any) {
       Alert.alert("Feil", error.message || "Kunne ikke starte økt");
     } finally {
@@ -66,33 +71,39 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
     }
   };
 
+  // For å nullstille feltene
   const resetWorkout = () => {
     setWorkoutName("");
     setExercises([]);
   };
 
+  // For å fjerne en øvelse
   const removeExercise = (index: number) => {
     setExercises(exercises.filter((_, i) => i !== index));
   };
 
+  // For å oppdatere reps
   const updateSetReps = (exerciseIndex: number, setIndex: number, reps: number) => {
     const updatedExercises = [...exercises];
     updatedExercises[exerciseIndex].sets[setIndex].reps = reps;
     setExercises(updatedExercises);
   };
 
+  // For å oppdatere vekt
   const updateSetWeight = (exerciseIndex: number, setIndex: number, weight: number) => {
     const updatedExercises = [...exercises];
     updatedExercises[exerciseIndex].sets[setIndex].weight = weight;
     setExercises(updatedExercises);
   };
   
+  // For å legge til et sett
   const addSet = (exerciseIndex: number) => {
     const updatedExercises = [...exercises];
     updatedExercises[exerciseIndex].sets.push({ reps: 0, weight: 0, restTime: 90 });
     setExercises(updatedExercises);
   };
   
+  // For å fjerne et sett
   const removeSet = (exerciseIndex: number, setIndex: number) => {
     const updatedExercises = [...exercises];
     if (updatedExercises[exerciseIndex].sets.length > 1) {
@@ -101,6 +112,7 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
     }
   };
 
+  // For å legge til en øvelse fra øvelsesliste
   const addExerciseFromPicker = (exerciseName: string) => {
     setExercises([...exercises, { name: exerciseName, sets: [{ reps: 0, weight: 0, restTime: 90 }] }]);
   };
