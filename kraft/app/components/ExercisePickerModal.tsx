@@ -142,7 +142,10 @@ export default function ExercisePickerModal({ visible, onClose, onSelectExercise
                 </View>
                 <TouchableOpacity
                   style={styles.exerciseListItemButton}
-                  onPress={() => handleSelectExercise(exercise)}
+                  onPress={() => {
+                  handleSelectExercise(exercise);
+                  onClose();
+                  }}
                 >
                   <Text style={styles.exerciseListItemButtonText}>Legg til</Text>
                 </TouchableOpacity>
