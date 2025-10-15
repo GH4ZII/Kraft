@@ -42,7 +42,7 @@ export default function LogWorkout() {
         </TouchableOpacity>
 
         {/* Create Template Card */}
-        <View style={styles.card}>
+        <TouchableOpacity style={styles.card} onPress={startEmptyWorkout}>
           <Ionicons name="grid-outline" size={24} color="#34C759" />
           <View style={styles.cardContent}>
             <Text style={styles.cardTitle}>Lag ny mal</Text>
@@ -53,7 +53,7 @@ export default function LogWorkout() {
           <View style={styles.newBadge}>
             <Text style={styles.newBadgeText}>Ny</Text>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* Templates Section */}
         <Text style={styles.sectionTitle}>Dine maler</Text>

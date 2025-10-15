@@ -9,7 +9,7 @@ import ExercisePickerModal from "./ExercisePickerModal";
 
 type Exercise = {
   name: string;
-  sets: Array<{ reps: number; weight: number }>;
+  sets: Array<{ reps: number; weight: number; restTime: number }>;
 };
 
 interface WorkoutModalProps {
@@ -58,7 +58,7 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
       Alert.alert("Suksess", "Økt startet!");
       onClose();
       resetWorkout();
-      router.replace("/(tabs)/");
+      router.replace("/(tabs)");
     } catch (error: any) {
       Alert.alert("Feil", error.message || "Kunne ikke starte økt");
     } finally {
@@ -75,8 +75,34 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
     setExercises(exercises.filter((_, i) => i !== index));
   };
 
+  const updateSetReps = (exerciseIndex: number, setIndex: number, reps: number) => {
+    const updatedExercises = [...exercises];
+    updatedExercises[exerciseIndex].sets[setIndex].reps = reps;
+    setExercises(updatedExercises);
+  };
+
+  const updateSetWeight = (exerciseIndex: number, setIndex: number, weight: number) => {
+    const updatedExercises = [...exercises];
+    updatedExercises[exerciseIndex].sets[setIndex].weight = weight;
+    setExercises(updatedExercises);
+  };
+  
+  const addSet = (exerciseIndex: number) => {
+    const updatedExercises = [...exercises];
+    updatedExercises[exerciseIndex].sets.push({ reps: 0, weight: 0, restTime: 90 });
+    setExercises(updatedExercises);
+  };
+  
+  const removeSet = (exerciseIndex: number, setIndex: number) => {
+    const updatedExercises = [...exercises];
+    if (updatedExercises[exerciseIndex].sets.length > 1) {
+      updatedExercises[exerciseIndex].sets.splice(setIndex, 1);
+      setExercises(updatedExercises);
+    }
+  };
+
   const addExerciseFromPicker = (exerciseName: string) => {
-    setExercises([...exercises, { name: exerciseName, sets: [{ reps: 0, weight: 0 }] }]);
+    setExercises([...exercises, { name: exerciseName, sets: [{ reps: 0, weight: 0, restTime: 90 }] }]);
   };
 
   return (
@@ -136,12 +162,86 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
                   <View style={styles.setsContainer}>
                     {exercise.sets.map((set, i) => (
                       <View key={i} style={styles.setRow}>
-                        <Text style={styles.setNumber}>Sett {i + 1}</Text>
-                        <Text style={styles.setInfo}>
-                          {set.reps} reps @ {set.weight} kg
-                        </Text>
+                        <View style={styles.setNumberContainer}>
+                          <Text style={styles.setNumber}>Sett {i + 1}</Text>
+                          {exercise.sets.length > 1 && (
+                            <TouchableOpacity 
+                              onPress={() => removeSet(index, i)}
+                              style={styles.removeSetButton}
+                            >
+                              <Ionicons name="close-circle" size={16} color="#ff4444" />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                        
+                        <View style={styles.setInputsContainer}>
+                          <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Reps</Text>
+                            <View style={styles.numberInputContainer}>
+                              <TouchableOpacity 
+                                style={styles.numberButton}
+                                onPress={() => updateSetReps(index, i, Math.max(0, set.reps - 1))}
+                              >
+                                <Ionicons name="remove" size={16} color="#34C759" />
+                              </TouchableOpacity>
+                              <TextInput 
+                                style={styles.numberInput}
+                                value={set.reps.toString()}
+                                onChangeText={(text) => {
+                                  const reps = parseInt(text) || 0;
+                                  updateSetReps(index, i, reps);
+                                }}
+                                keyboardType="numeric"
+                                textAlign="center"
+                              />
+                              <TouchableOpacity 
+                                style={styles.numberButton}
+                                onPress={() => updateSetReps(index, i, set.reps + 1)}
+                              >
+                                <Ionicons name="add" size={16} color="#34C759" />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                          
+                          <View style={styles.inputGroup}>
+                            <Text style={styles.inputLabel}>Kg</Text>
+                            <View style={styles.numberInputContainer}>
+                              <TouchableOpacity 
+                                style={styles.numberButton}
+                                onPress={() => updateSetWeight(index, i, Math.max(0, set.weight - 2.5))}
+                              >
+                                <Ionicons name="remove" size={16} color="#34C759" />
+                              </TouchableOpacity>
+                              <TextInput 
+                                style={styles.numberInput}
+                                value={set.weight.toString()}
+                                onChangeText={(text) => {
+                                  const weight = parseFloat(text) || 0;
+                                  updateSetWeight(index, i, weight);
+                                }}
+                                keyboardType="numeric"
+                                textAlign="center"
+                              />
+                              <TouchableOpacity 
+                                style={styles.numberButton}
+                                onPress={() => updateSetWeight(index, i, set.weight + 2.5)}
+                              >
+                                <Ionicons name="add" size={16} color="#34C759" />
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        </View>
                       </View>
                     ))}
+                    
+                    {/* Legg til sett knapp */}
+                    <TouchableOpacity 
+                      style={styles.addSetButton} 
+                      onPress={() => addSet(index)}
+                    >
+                      <Ionicons name="add-circle-outline" size={20} color="#34C759" />
+                      <Text style={styles.addSetButtonText}>Legg til sett</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               ))
@@ -291,9 +391,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   setRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
@@ -381,6 +479,73 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  setNumberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  removeSetButton: {
+    padding: 4,
+  },
+  setInputsContainer: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 8,
+  },
+  inputGroup: {
+    flex: 1,
+  },
+  inputLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  numberInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 8,
+    padding: 4,
+  },
+  numberButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  numberInput: {
+    minWidth: 50,
+    height: 32,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    paddingHorizontal: 8,
+    backgroundColor: '#fff',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  addSetButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 12,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  addSetButtonText: {
+    fontSize: 14,
+    color: '#34C759',
+    fontWeight: '500',
   },
 });
 
