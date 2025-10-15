@@ -8,9 +8,16 @@ import { router } from "expo-router";
 import ExercisePickerModal from "./ExercisePickerModal";
 import { SwipeListView } from 'react-native-swipe-list-view';
 
+type Set = {
+  id: string;
+  reps: number;
+  weight: number;
+  restTime: number;
+};
+
 type Exercise = {
   name: string;
-  sets: Array<{ reps: number; weight: number; restTime: number }>;
+  sets: Array<Set>;
 };
 
 interface WorkoutModalProps {
@@ -100,7 +107,13 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
   // For å legge til et sett
   const addSet = (exerciseIndex: number) => {
     const updatedExercises = [...exercises];
-    updatedExercises[exerciseIndex].sets.push({ reps: 0, weight: 0, restTime: 90 });
+    const newSetId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    updatedExercises[exerciseIndex].sets.push({ 
+      id: newSetId,
+      reps: 0, 
+      weight: 0, 
+      restTime: 90 
+    });
     setExercises(updatedExercises);
   };
   
@@ -115,23 +128,32 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
 
   // For å legge til en øvelse fra øvelsesliste
   const addExerciseFromPicker = (exerciseName: string) => {
-    setExercises([...exercises, { name: exerciseName, sets: [{ reps: 0, weight: 0, restTime: 90 }] }]);
+    const newSetId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+    setExercises([...exercises, { 
+      name: exerciseName, 
+      sets: [{ 
+        id: newSetId,
+        reps: 0, 
+        weight: 0, 
+        restTime: 90 
+      }] 
+    }]);
   };
 
   // For å konvertere sets til SwipeListView format
-  const convertSetsToSwipeData = (sets: Array<{ reps: number; weight: number; restTime: number }>) => {
+  const convertSetsToSwipeData = (sets: Array<Set>) => {
     return sets.map((set, index) => ({
-      key: index.toString(),
+      key: set.id,
       set: set,
       index: index
     }));
   };
 
   // For å slette et sett i SwipeListView
-  const deleteSet = (exerciseIndex: number, setKey: string) => {
+  const deleteSet = (exerciseIndex: number, setId: string) => {
     const updatedExercises = [...exercises];
-    const setIndex = parseInt(setKey);
-    if (updatedExercises[exerciseIndex].sets.length > 1) {
+    const setIndex = updatedExercises[exerciseIndex].sets.findIndex(set => set.id === setId);
+    if (setIndex !== -1 && updatedExercises[exerciseIndex].sets.length > 1) {
       updatedExercises[exerciseIndex].sets.splice(setIndex, 1);
       setExercises(updatedExercises);
     }
@@ -282,7 +304,7 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
                       data={convertSetsToSwipeData(exercise.sets)}
                       renderItem={({ item }) => renderSetItem(item, index)}
                       renderHiddenItem={({ item }) => renderHiddenItem({ item }, index)}
-                      rightOpenValue={-80}
+                      rightOpenValue={-200}
                       disableRightSwipe={exercise.sets.length <= 1}
                       keyExtractor={(item) => item.key}
                       showsVerticalScrollIndicator={false}
@@ -290,7 +312,7 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
                       ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
                       closeOnRowPress={true}
                       closeOnScroll={true}
-                      swipeToOpenPercent={80}
+                      swipeToOpenPercent={95}
                       onSwipeValueChange={(swipeData) => onSwipeValueChange(swipeData, index)}
                     />
                     
@@ -614,7 +636,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ff4444',
     justifyContent: 'center',
     alignItems: 'center',
-    width: 80,
+    width: 200,
     borderRadius: 8,
     height: '100%',
     marginLeft: 8,
