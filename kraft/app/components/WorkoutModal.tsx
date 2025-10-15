@@ -254,7 +254,61 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
       </View>
       
       <View style={styles.setInputsContainer}>
-        {/* Same input fields as above */}
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Reps</Text>
+          <View style={styles.numberInputContainer}>
+            <TouchableOpacity 
+              style={styles.numberButton}
+              onPress={() => updateSetReps(index, i, Math.max(0, set.reps - 1))}
+            >
+              <Ionicons name="remove" size={16} color="#34C759" />
+            </TouchableOpacity>
+            <TextInput 
+              style={styles.numberInput}
+              value={set.reps.toString()}
+              onChangeText={(text) => {
+                const reps = parseInt(text) || 0;
+                updateSetReps(index, i, reps);
+              }}
+              keyboardType="numeric"
+              textAlign="center"
+            />
+            <TouchableOpacity 
+              style={styles.numberButton}
+              onPress={() => updateSetReps(index, i, set.reps + 1)}
+            >
+              <Ionicons name="add" size={16} color="#34C759" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Kg</Text>
+          <View style={styles.numberInputContainer}>
+            <TouchableOpacity 
+              style={styles.numberButton}
+              onPress={() => updateSetWeight(index, i, Math.max(0, set.weight - 2.5))}
+            >
+              <Ionicons name="remove" size={16} color="#34C759" />
+            </TouchableOpacity>
+            <TextInput 
+              style={styles.numberInput}
+              value={set.weight.toString()}
+              onChangeText={(text) => {
+                const weight = parseFloat(text) || 0;
+                updateSetWeight(index, i, weight);
+              }}
+              keyboardType="numeric"
+              textAlign="center"
+            />
+            <TouchableOpacity 
+              style={styles.numberButton}
+              onPress={() => updateSetWeight(index, i, set.weight + 2.5)}
+            >
+              <Ionicons name="add" size={16} color="#34C759" />
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </View>
   )

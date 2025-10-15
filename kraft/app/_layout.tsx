@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useEffect } from "react";
 import { router } from "expo-router";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 function Gate() {
   const { user, loading: authLoading } = useAuth();
@@ -26,8 +27,10 @@ function Gate() {
 
 export default function RootLayout() {
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <AuthProvider>
       <Gate />
     </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
