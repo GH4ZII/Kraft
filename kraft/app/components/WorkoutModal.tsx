@@ -170,14 +170,19 @@ export default function WorkoutModal({ visible, onClose, initialTemplate }: Work
   // For å legge til et sett
   const addSet = (exerciseIndex: number) => {
     const updatedExercises = [...exercises];
+    const sets = updatedExercises[exerciseIndex].sets;
+    const last = sets[sets.length - 1];
+  
     const newSetId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-    updatedExercises[exerciseIndex].sets.push({ 
+  
+    sets.push({
       id: newSetId,
-      reps: 0, 
-      weight: 0, 
-      restTime: 90,
-      completed: false
+      reps: last ? last.reps : 0,
+      weight: last ? last.weight : 0,
+      restTime: last ? last.restTime : 90,
+      completed: false,
     });
+  
     setExercises(updatedExercises);
   };
   
@@ -227,38 +232,17 @@ export default function WorkoutModal({ visible, onClose, initialTemplate }: Work
   // Render funksjon for hvert sett i SwipeListView
   const renderSetItem = (data: any, exerciseIndex: number) => (
     <View style={styles.setRow}>
-      <View style={styles.setNumberContainer}>
-        <Text style={styles.setNumber}>Sett {data.index + 1}</Text>
-      </View>
-      {/* Labels utenfor containeren */}
-      <View style={styles.setLabelsRow}>
-        <Text style={[styles.inputLabel, styles.setLabelCol]}>Reps</Text>
-        <Text style={[styles.inputLabel, styles.setLabelCol]}>Kg</Text>
-        <View style={styles.checkboxSpace} />
-      </View>
-
-      <View style={[styles.setInputsContainer, data.set.completed && styles.setInputsContainerCompleted]}>
+      <View style={[styles.setRowInner, data.set.completed && styles.setRowInnerCompleted]}>
+        <Text style={styles.setIndex}>{data.index + 1}</Text>
+        <View style={styles.setInputsContainer}>
   {/* REPS container */}
   <View style={styles.inputBox}>
     <View style={[styles.controlContainer, data.set.completed && styles.completedControlContainer]}>
-      <TouchableOpacity
-        style={[styles.numberButton, data.set.completed && styles.completedNumberButton]}
-        onPress={() =>
-          updateSetReps(exerciseIndex, data.index, Math.max(0, data.set.reps - 1))
-        }
-        disabled={data.set.completed}
-      >
-        <Ionicons
-          name="remove"
-          size={16}
-          color={data.set.completed ? "#ccc" : "#34C759"}
-        />
-      </TouchableOpacity>
-
-      <TextInput
-        style={[styles.numberInput, data.set.completed && styles.completedNumberInput]}
-        placeholder="Reps"
-        value={data.set.reps.toString()}
+              <TextInput
+                style={[styles.numberInput, data.set.completed && styles.completedNumberInput]}
+                placeholder="reps"
+                placeholderTextColor="#000"
+                value={data.set.reps ? data.set.reps.toString() : ""}
         onChangeText={(text) => {
           const reps = parseInt(text) || 0;
           updateSetReps(exerciseIndex, data.index, reps);
@@ -267,44 +251,17 @@ export default function WorkoutModal({ visible, onClose, initialTemplate }: Work
         textAlign="center"
         editable={!data.set.completed}
       />
-
-      <TouchableOpacity
-        style={[styles.numberButton, data.set.completed && styles.completedNumberButton]}
-        onPress={() =>
-          updateSetReps(exerciseIndex, data.index, data.set.reps + 1)
-        }
-        disabled={data.set.completed}
-      >
-        <Ionicons
-          name="add"
-          size={16}
-          color={data.set.completed ? "#ccc" : "#34C759"}
-        />
-      </TouchableOpacity>
     </View>
   </View>
 
   {/* KG container */}
   <View style={styles.inputBox}>
     <View style={[styles.controlContainer, data.set.completed && styles.completedControlContainer]}>
-      <TouchableOpacity
-        style={[styles.numberButton, data.set.completed && styles.completedNumberButton]}
-        onPress={() =>
-          updateSetWeight(exerciseIndex, data.index, Math.max(0, data.set.weight - 2.5))
-        }
-        disabled={data.set.completed}
-      >
-        <Ionicons
-          name="remove"
-          size={16}
-          color={data.set.completed ? "#ccc" : "#34C759"}
-        />
-      </TouchableOpacity>
-
-      <TextInput
-        style={[styles.numberInput, data.set.completed && styles.completedNumberInput]}
-        placeholder="Kg"
-        value={data.set.weight.toString()}
+              <TextInput
+                style={[styles.numberInput, data.set.completed && styles.completedNumberInput]}
+                placeholder="kg"
+                placeholderTextColor="#000"
+                value={data.set.weight ? data.set.weight.toString() : ""}
         onChangeText={(text) => {
           const weight = parseFloat(text) || 0;
           updateSetWeight(exerciseIndex, data.index, weight);
@@ -313,31 +270,19 @@ export default function WorkoutModal({ visible, onClose, initialTemplate }: Work
         textAlign="center"
         editable={!data.set.completed}
       />
-
-      <TouchableOpacity
-        style={[styles.numberButton, data.set.completed && styles.completedNumberButton]}
-        onPress={() =>
-          updateSetWeight(exerciseIndex, data.index, data.set.weight + 2.5)
-        }
-        disabled={data.set.completed}
-      >
-        <Ionicons
-          name="add"
-          size={16}
-          color={data.set.completed ? "#ccc" : "#34C759"}
-        />
-      </TouchableOpacity>
     </View>
   </View>
 
-  {/* Checkbox */}
+  {/* Checkbox tilbake på høyre side */}
   <TouchableOpacity
     style={[styles.checkbox]}
     onPress={() => toggleSetCompletion(exerciseIndex, data.index)}
   >
     {data.set.completed && <Ionicons name="checkmark" size={16} color="#34C759" />}
   </TouchableOpacity>
-</View>
+
+        </View>{/* end setInputsContainer */}
+      </View>{/* end setRowInner */}
 
     </View>
   );
@@ -425,7 +370,6 @@ export default function WorkoutModal({ visible, onClose, initialTemplate }: Work
                       keyExtractor={(item) => item.key}
                       showsVerticalScrollIndicator={false}
                       scrollEnabled={false}
-                      ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
                       closeOnRowPress={true}
                       closeOnScroll={true}
                       swipeToOpenPercent={95}
@@ -450,13 +394,6 @@ export default function WorkoutModal({ visible, onClose, initialTemplate }: Work
               <Ionicons name="add" size={20} color="#fff" />
               <Text style={styles.addExerciseButtonText}>Øvelse</Text>
             </TouchableOpacity>
-          </View>
-
-          {/* Rest Timer Section */}
-          <View style={styles.restTimerSection}>
-            <Text style={styles.restTimerTitle}>Hviletimer</Text>
-            <Text style={styles.restTimerSubtitle}>Valgfritt • Alarm og vibrasjon</Text>
-            <Text style={styles.restTimerValue}>00:30</Text>
           </View>
         </ScrollView>
 
@@ -592,15 +529,34 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   setsContainer: {
-    gap: 8,
+    gap: 0,
   },
   setRow: {
-    paddingVertical: 12,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
     backgroundColor: '#fff',
     borderRadius: 8,
     marginHorizontal: 0,
+  },
+  setRowInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  setRowInnerCompleted: {
+    backgroundColor: '#f0f8f0',
+    borderColor: '#34C759',
+    borderWidth: 1,
+    borderRadius: 9,
+    paddingBottom: 4,
+  },
+  setIndex: {
+    width: 20,
+    textAlign: 'center',
+    color: '#555',
+    fontWeight: '600',
+    fontSize: 14,
   },
   setNumber: {
     fontSize: 14,
@@ -687,17 +643,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
-  setNumberContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
   removeSetButton: {
     padding: 4,
   },
   setInputsContainer: {
+    flex: 1,
     flexDirection: 'row',
-    marginTop: 8,
+    alignItems: 'flex-end',
+    marginTop: 4,
+    columnGap: 8,
   },
   setLabelsRow: {
     flexDirection: 'row',
@@ -714,10 +668,6 @@ const styles = StyleSheet.create({
     width: 25,
   },
   setInputsContainerCompleted: {
-    backgroundColor: '#f0f8f0',
-    borderColor: '#34C759',
-    borderWidth: 1,
-    borderRadius: 8,
   },
   inputGroup: {
     flex: 1,
@@ -733,7 +683,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'transparent',
     borderRadius: 8,
-    padding: 4,
+    padding: 2,
   },
   numberButton: {
     padding: 8,
@@ -746,15 +696,22 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   numberInput: {
-    minWidth: 50,
-    height: 32,
+    minWidth: 64,
+    height: 28,
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#000',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     backgroundColor: '#fff',
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
   },
   addSetButton: {
     flexDirection: 'row',
@@ -799,26 +756,24 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 32,
     height: 32,
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#34C759',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
-    alignSelf: 'flex-end',        // flytt den ned til samme linje som input-boksene
-    marginLeft: 12,               
-    marginBottom: 4,            
-    
+    marginLeft: 12,
+    flexShrink: 0,
   },
   completedCheckbox: {
     backgroundColor: '#34C759',
     borderColor: '#34C759',
   },
   inputBox: {
-    flex: 1,
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
+    width: 100,
   },
   
   controlContainer: {
