@@ -109,22 +109,33 @@ export const updateUserStreak = async (userId: string) => {
     ? new Date(user.lastWorkoutDate)
     : null;
 
-    const lastWorkout = lastWorkoutDate
-    ? new Date(lastWorkoutDate.setHours(0, 0, 0, 0))
-    : null;
+    // Hvis det ikke finnes en siste økt-dato, start streak på 1
+    if (!lastWorkoutDate) {
+        await updateUserProfile(userId, {
+            streak: 1,
+            lastWorkoutDate: today,
+        });
+        return;
+    }
+
+    const lastWorkout = new Date(lastWorkoutDate);
+    lastWorkout.setHours(0, 0, 0, 0);
 
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
     let newStreak = user.streak;
 
-    if (!lastWorkout) {
-        newStreak = 1;
-    } else if (lastWorkout.getTime() === yesterday.getTime()) {
+    // Hvis siste økt var i går, øk streak med 1
+    if (lastWorkout.getTime() === yesterday.getTime()) {
         newStreak = user.streak + 1;
-    } else if (lastWorkout.getTime() === today.getTime()) {
-        return;
-    } else {
+    } 
+    // Hvis siste økt var i dag, behold samme streak
+    else if (lastWorkout.getTime() === today.getTime()) {
+        return; // Streak allerede oppdatert i dag
+    } 
+    // Hvis det har gått mer enn 1 dag, start streak på nytt
+    else {
         newStreak = 1;
     }
 
@@ -247,6 +258,96 @@ export const getUserWorkouts = async (userId: string, limitCount: number = 10) =
     })) as Friend[];
   };
 
+  export const searchUsersByUsername = async (searchQuery: string): Promise<User[]> => {
+    const usersRef = collection(firestore, "users");
+    const querySnapshot = await getDocs(usersRef);
+    
+    const allUsers = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt.toDate(),
+    })) as User[];
+
+    // Filtrer lokalt på displayName (case-insensitive)
+    const filteredUsers = allUsers.filter(user => 
+        user.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    return filteredUsers;
+  };
+
+  export const followUser = async (userId: string, friendId: string) => {
+    const friendRef = collection(firestore, "friends");
+    await addDoc(friendRef, {
+        userId,
+        friendId,
+        status: "accepted",
+        createdAt: Timestamp.now(),
+    });
+  };
+
+  export const unfollowUser = async (userId: string, friendId: string) => {
+    const friendsRef = collection(firestore, "friends");
+    const q = query(
+        friendsRef,
+        where("userId", "==", userId),
+        where("friendId", "==", friendId),
+        where("status", "==", "accepted")
+    );
+
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+        const friendDoc = querySnapshot.docs[0];
+        await deleteDoc(doc(firestore, "friends", friendDoc.id));
+    }
+  };
+
+  export const getFollowing = async (userId: string): Promise<Friend[]> => {
+    return getUserFriends(userId); // Samme funksjon som getUserFriends
+  };
+
+  export const isFollowing = async (userId: string, friendId: string): Promise<boolean> => {
+    const friendsRef = collection(firestore, "friends");
+    const q = query(
+        friendsRef,
+        where("userId", "==", userId),
+        where("friendId", "==", friendId),
+        where("status", "==", "accepted")
+    );
+
+    const querySnapshot = await getDocs(q);
+    return !querySnapshot.empty;
+  };
+
+  export const getFriendsActivityFeed = async (userId: string, limitCount: number = 20): Promise<Activity[]> => {
+    // Hent brukerens venner
+    const friends = await getUserFriends(userId);
+    const friendIds = friends.map(friend => friend.friendId);
+
+    if (friendIds.length === 0) {
+        return []; // Ingen venner, returner tom liste
+    }
+
+    // Hent aktiviteter fra venner (uten orderBy for å unngå composite index)
+    const activitiesRef = collection(firestore, "activities");
+    const q = query(
+        activitiesRef,
+        where("userId", "in", friendIds),
+        limit(limitCount * 2) // Hent flere for å sortere lokalt
+    );
+
+    const querySnapshot = await getDocs(q);
+    const activities = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp.toDate(),
+    })) as Activity[];
+
+    // Sorter lokalt etter timestamp (nyeste først) og begrens til limitCount
+    activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return activities.slice(0, limitCount);
+  };
+
   // ============== HELPER FUNCTIONS ==============
 
   export const getWorkoutsThisWeek = async (userId: string): Promise<number> => {
@@ -255,6 +356,73 @@ export const getUserWorkouts = async (userId: string, limitCount: number = 10) =
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
     return workouts.filter(w => w.date >= weekAgo).length;
+  };
+
+  export const calculateStreakFromWorkouts = async (userId: string): Promise<number> => {
+    const workouts = await getUserWorkouts(userId, 100);
+    if (workouts.length === 0) return 0;
+
+    // Sorter økter etter dato (nyeste først)
+    workouts.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Sjekk om det finnes en økt i dag
+    const todayWorkout = workouts.find(w => {
+      const workoutDate = new Date(w.date);
+      workoutDate.setHours(0, 0, 0, 0);
+      return workoutDate.getTime() === today.getTime();
+    });
+
+    if (todayWorkout) {
+      streak = 1;
+    } else {
+      // Sjekk om det finnes en økt i går
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const yesterdayWorkout = workouts.find(w => {
+        const workoutDate = new Date(w.date);
+        workoutDate.setHours(0, 0, 0, 0);
+        return workoutDate.getTime() === yesterday.getTime();
+      });
+
+      if (!yesterdayWorkout) return 0; // Ingen streak hvis ingen økt i går eller i dag
+      streak = 1;
+    }
+
+    // Fortsett bakover i tid for å finne kontinuerlig streak
+    let currentDate = new Date(today);
+    if (!todayWorkout) {
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      currentDate = new Date(yesterday);
+    }
+
+    for (let i = 0; i < workouts.length; i++) {
+      const workoutDate = new Date(workouts[i].date);
+      workoutDate.setHours(0, 0, 0, 0);
+
+      const expectedDate = new Date(currentDate);
+      expectedDate.setDate(expectedDate.getDate() - 1);
+
+      if (workoutDate.getTime() === expectedDate.getTime()) {
+        streak++;
+        currentDate = new Date(expectedDate);
+      } else if (workoutDate.getTime() < expectedDate.getTime()) {
+        break; // Streak brutt
+      }
+    }
+
+    return streak;
+  };
+
+  export const syncUserStreak = async (userId: string): Promise<number> => {
+    const calculatedStreak = await calculateStreakFromWorkouts(userId);
+    await updateUserProfile(userId, { streak: calculatedStreak });
+    return calculatedStreak;
   };
 
   // ============== LEADERBOARD FUNCTIONS ==============

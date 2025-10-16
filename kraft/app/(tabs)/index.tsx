@@ -7,7 +7,8 @@ import {
   getUserProfile, 
   getWorkoutsThisWeek, 
   getLastWorkout,
-  getActivityFeed,
+  getFriendsActivityFeed,
+  syncUserStreak,
   Workout,
   Activity 
 } from "@/services/database";
@@ -15,7 +16,7 @@ import {
 export default function Home() {
   const [userName, setUserName] = useState("");
   const [weeklyWorkouts, setWeeklyWorkouts] = useState(0);
-  const [streak, setStreak] = useState(7);
+  const [streak, setStreak] = useState(0);
   const [lastWorkout, setLastWorkout] = useState<Workout | null>(null);
   const [activities, setActivities] = useState<Activity[]>([]);
 
@@ -32,8 +33,11 @@ export default function Home() {
       const profile = await getUserProfile(user.uid);
       if (profile) {
         setUserName(profile.displayName || "Bruker");
-        setStreak(profile.streak || 0);
       }
+
+      // Synkroniser streak basert på faktiske økter
+      const currentStreak = await syncUserStreak(user.uid);
+      setStreak(currentStreak);
 
       // Hent statistikk
       const workouts = await getWorkoutsThisWeek(user.uid);
@@ -44,7 +48,7 @@ export default function Home() {
       setLastWorkout(last);
 
       // Hent aktivitetsfeed
-      const feed = await getActivityFeed(3);
+      const feed = await getFriendsActivityFeed(user.uid, 3);
       setActivities(feed);
     } catch (error) {
       console.error("Error loading dashboard:", error);
