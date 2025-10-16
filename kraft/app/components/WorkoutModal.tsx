@@ -14,6 +14,7 @@ type Set = {
   reps: number;
   weight: number;
   restTime: number;
+  completed: boolean;
 };
 
 type Exercise = {
@@ -42,7 +43,8 @@ export default function WorkoutModal({ visible, onClose, initialTemplate }: Work
         ...exercise,
         sets: exercise.sets.map(set => ({
           ...set,
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9) // Generer ny ID for hvert sett
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9), // Generer ny ID for hvert sett
+          completed: false // Reset completion status when loading template
         }))
       })));
     }
@@ -157,6 +159,13 @@ export default function WorkoutModal({ visible, onClose, initialTemplate }: Work
     updatedExercises[exerciseIndex].sets[setIndex].weight = weight;
     setExercises(updatedExercises);
   };
+
+  // For å toggle set completion
+  const toggleSetCompletion = (exerciseIndex: number, setIndex: number) => {
+    const updatedExercises = [...exercises];
+    updatedExercises[exerciseIndex].sets[setIndex].completed = !updatedExercises[exerciseIndex].sets[setIndex].completed;
+    setExercises(updatedExercises);
+  };
   
   // For å legge til et sett
   const addSet = (exerciseIndex: number) => {
@@ -166,7 +175,8 @@ export default function WorkoutModal({ visible, onClose, initialTemplate }: Work
       id: newSetId,
       reps: 0, 
       weight: 0, 
-      restTime: 90 
+      restTime: 90,
+      completed: false
     });
     setExercises(updatedExercises);
   };
@@ -189,7 +199,8 @@ export default function WorkoutModal({ visible, onClose, initialTemplate }: Work
         id: newSetId,
         reps: 0, 
         weight: 0, 
-        restTime: 90 
+        restTime: 90,
+        completed: false
       }] 
     }]);
   };
@@ -219,64 +230,115 @@ export default function WorkoutModal({ visible, onClose, initialTemplate }: Work
       <View style={styles.setNumberContainer}>
         <Text style={styles.setNumber}>Sett {data.index + 1}</Text>
       </View>
-      
-      <View style={styles.setInputsContainer}>
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Reps</Text>
-          <View style={styles.numberInputContainer}>
-            <TouchableOpacity 
-              style={styles.numberButton}
-              onPress={() => updateSetReps(exerciseIndex, data.index, Math.max(0, data.set.reps - 1))}
-            >
-              <Ionicons name="remove" size={16} color="#34C759" />
-            </TouchableOpacity>
-            <TextInput 
-              style={styles.numberInput}
-              value={data.set.reps.toString()}
-              onChangeText={(text) => {
-                const reps = parseInt(text) || 0;
-                updateSetReps(exerciseIndex, data.index, reps);
-              }}
-              keyboardType="numeric"
-              textAlign="center"
-            />
-            <TouchableOpacity 
-              style={styles.numberButton}
-              onPress={() => updateSetReps(exerciseIndex, data.index, data.set.reps + 1)}
-            >
-              <Ionicons name="add" size={16} color="#34C759" />
-            </TouchableOpacity>
-          </View>
-        </View>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Kg</Text>
-          <View style={styles.numberInputContainer}>
-            <TouchableOpacity 
-              style={styles.numberButton}
-              onPress={() => updateSetWeight(exerciseIndex, data.index, Math.max(0, data.set.weight - 2.5))}
-            >
-              <Ionicons name="remove" size={16} color="#34C759" />
-            </TouchableOpacity>
-            <TextInput 
-              style={styles.numberInput}
-              value={data.set.weight.toString()}
-              onChangeText={(text) => {
-                const weight = parseFloat(text) || 0;
-                updateSetWeight(exerciseIndex, data.index, weight);
-              }}
-              keyboardType="numeric"
-              textAlign="center"
-            />
-            <TouchableOpacity 
-              style={styles.numberButton}
-              onPress={() => updateSetWeight(exerciseIndex, data.index, data.set.weight + 2.5)}
-            >
-              <Ionicons name="add" size={16} color="#34C759" />
-            </TouchableOpacity>
-          </View>
-        </View>
+      {/* Labels utenfor containeren */}
+      <View style={styles.setLabelsRow}>
+        <Text style={[styles.inputLabel, styles.setLabelCol]}>Reps</Text>
+        <Text style={[styles.inputLabel, styles.setLabelCol]}>Kg</Text>
+        <View style={styles.checkboxSpace} />
       </View>
+
+      <View style={[styles.setInputsContainer, data.set.completed && styles.setInputsContainerCompleted]}>
+  {/* REPS container */}
+  <View style={styles.inputBox}>
+    <View style={[styles.controlContainer, data.set.completed && styles.completedControlContainer]}>
+      <TouchableOpacity
+        style={[styles.numberButton, data.set.completed && styles.completedNumberButton]}
+        onPress={() =>
+          updateSetReps(exerciseIndex, data.index, Math.max(0, data.set.reps - 1))
+        }
+        disabled={data.set.completed}
+      >
+        <Ionicons
+          name="remove"
+          size={16}
+          color={data.set.completed ? "#ccc" : "#34C759"}
+        />
+      </TouchableOpacity>
+
+      <TextInput
+        style={[styles.numberInput, data.set.completed && styles.completedNumberInput]}
+        placeholder="Reps"
+        value={data.set.reps.toString()}
+        onChangeText={(text) => {
+          const reps = parseInt(text) || 0;
+          updateSetReps(exerciseIndex, data.index, reps);
+        }}
+        keyboardType="numeric"
+        textAlign="center"
+        editable={!data.set.completed}
+      />
+
+      <TouchableOpacity
+        style={[styles.numberButton, data.set.completed && styles.completedNumberButton]}
+        onPress={() =>
+          updateSetReps(exerciseIndex, data.index, data.set.reps + 1)
+        }
+        disabled={data.set.completed}
+      >
+        <Ionicons
+          name="add"
+          size={16}
+          color={data.set.completed ? "#ccc" : "#34C759"}
+        />
+      </TouchableOpacity>
+    </View>
+  </View>
+
+  {/* KG container */}
+  <View style={styles.inputBox}>
+    <View style={[styles.controlContainer, data.set.completed && styles.completedControlContainer]}>
+      <TouchableOpacity
+        style={[styles.numberButton, data.set.completed && styles.completedNumberButton]}
+        onPress={() =>
+          updateSetWeight(exerciseIndex, data.index, Math.max(0, data.set.weight - 2.5))
+        }
+        disabled={data.set.completed}
+      >
+        <Ionicons
+          name="remove"
+          size={16}
+          color={data.set.completed ? "#ccc" : "#34C759"}
+        />
+      </TouchableOpacity>
+
+      <TextInput
+        style={[styles.numberInput, data.set.completed && styles.completedNumberInput]}
+        placeholder="Kg"
+        value={data.set.weight.toString()}
+        onChangeText={(text) => {
+          const weight = parseFloat(text) || 0;
+          updateSetWeight(exerciseIndex, data.index, weight);
+        }}
+        keyboardType="numeric"
+        textAlign="center"
+        editable={!data.set.completed}
+      />
+
+      <TouchableOpacity
+        style={[styles.numberButton, data.set.completed && styles.completedNumberButton]}
+        onPress={() =>
+          updateSetWeight(exerciseIndex, data.index, data.set.weight + 2.5)
+        }
+        disabled={data.set.completed}
+      >
+        <Ionicons
+          name="add"
+          size={16}
+          color={data.set.completed ? "#ccc" : "#34C759"}
+        />
+      </TouchableOpacity>
+    </View>
+  </View>
+
+  {/* Checkbox */}
+  <TouchableOpacity
+    style={[styles.checkbox]}
+    onPress={() => toggleSetCompletion(exerciseIndex, data.index)}
+  >
+    {data.set.completed && <Ionicons name="checkmark" size={16} color="#34C759" />}
+  </TouchableOpacity>
+</View>
+
     </View>
   );
 
@@ -635,8 +697,27 @@ const styles = StyleSheet.create({
   },
   setInputsContainer: {
     flexDirection: 'row',
-    gap: 16,
     marginTop: 8,
+  },
+  setLabelsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingHorizontal: 0,
+    marginTop: 8,
+    marginLeft: 12,
+  },
+  setLabelCol: {
+    flex: 1,
+  },
+  checkboxSpace: {
+    width: 25,
+  },
+  setInputsContainerCompleted: {
+    backgroundColor: '#f0f8f0',
+    borderColor: '#34C759',
+    borderWidth: 1,
+    borderRadius: 8,
   },
   inputGroup: {
     flex: 1,
@@ -650,7 +731,7 @@ const styles = StyleSheet.create({
   numberInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8F8F8',
+    backgroundColor: 'transparent',
     borderRadius: 8,
     padding: 4,
   },
@@ -674,8 +755,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     backgroundColor: '#fff',
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
   },
   addSetButton: {
     flexDirection: 'row',
@@ -716,5 +795,54 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 2,
   },
+  // Completion styles used only on setInputsContainer
+  checkbox: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#34C759',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    alignSelf: 'flex-end',        // flytt den ned til samme linje som input-boksene
+    marginLeft: 12,               
+    marginBottom: 4,            
+    
+  },
+  completedCheckbox: {
+    backgroundColor: '#34C759',
+    borderColor: '#34C759',
+  },
+  inputBox: {
+    flex: 1,
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  
+  controlContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+
+  },
+  // Make inners transparent when completed so green background shows through
+  completedControlContainer: {
+    backgroundColor: 'transparent',
+  },
+  completedNumberButton: {
+    backgroundColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  completedNumberInput: {
+    backgroundColor: 'transparent',
+  },
+  
 });
 

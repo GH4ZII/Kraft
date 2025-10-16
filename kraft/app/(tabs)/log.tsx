@@ -47,6 +47,25 @@ export default function LogWorkout() {
     setShowWorkoutModal(true);
   };
 
+  const handleTemplateMenu = (template: WorkoutTemplate) => {
+    Alert.alert(
+      template.name,
+      "Hva vil du gjøre med denne malen?",
+      [
+        { text: "Avbryt", style: "cancel" },
+        {
+          text: "Start økt",
+          onPress: () => handleSelectTemplate(template)
+        },
+        {
+          text: "Slett mal",
+          style: "destructive",
+          onPress: () => handleDeleteTemplate(template)
+        }
+      ]
+    );
+  };
+
   const handleDeleteTemplate = (template: WorkoutTemplate) => {
     Alert.alert(
       "Slett mal",
@@ -69,6 +88,59 @@ export default function LogWorkout() {
       ]
     );
   };
+
+  // Funksjon for å formatere dato
+  const formatDate = (date: Date) => {
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return "I går";
+    if (diffDays < 7) return `${diffDays} dager siden`;
+    if (diffDays < 30) return `${Math.ceil(diffDays / 7)} uker siden`;
+    return date.toLocaleDateString('no-NO');
+  };
+
+  // Render funksjon for template grid items
+  const renderTemplateItem = (template: WorkoutTemplate) => (
+    <View key={template.id} style={styles.templateGridItem}>
+      <View style={styles.templateCard}>
+        <View style={styles.templateHeader}>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => handleTemplateMenu(template)}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+          </TouchableOpacity>
+        </View>
+        
+        <TouchableOpacity 
+          style={styles.templateContent}
+          onPress={() => handleSelectTemplate(template)}
+        >
+          <Text style={styles.templateName} numberOfLines={2}>
+            {template.name}
+          </Text>
+        </TouchableOpacity>
+        
+        <View style={styles.templateFooter}>
+          <View style={styles.templateStat}>
+            <Ionicons name="list" size={14} color="#666" />
+            <Text style={styles.templateStatText}>
+              {template.exercises.length} øvelse{template.exercises.length !== 1 ? 'r' : ''}
+            </Text>
+          </View>
+          
+          <View style={styles.templateStat}>
+            <Ionicons name="time" size={14} color="#666" />
+            <Text style={styles.templateStatText}>
+              {template.lastUsed ? formatDate(template.lastUsed) : 'Aldri brukt'}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -130,39 +202,9 @@ export default function LogWorkout() {
             </Text>
           </View>
         ) : (
-          templates.map((template) => (
-            <View key={template.id} style={styles.templateCard}>
-              <TouchableOpacity 
-                style={styles.templateContent}
-                onPress={() => handleSelectTemplate(template)}
-              >
-                <View style={styles.templateInfo}>
-                  <Text style={styles.templateName}>{template.name}</Text>
-                  <Text style={styles.templateExercises}>
-                    {template.exercises.length} øvelse{template.exercises.length !== 1 ? 'r' : ''}
-                  </Text>
-                  <Text style={styles.templateDate}>
-                    Opprettet {template.createdAt.toLocaleDateString('no-NO')}
-                  </Text>
-                </View>
-                <View style={styles.templateActions}>
-                  <TouchableOpacity
-                    style={styles.useButton}
-                    onPress={() => handleSelectTemplate(template)}
-                  >
-                    <Ionicons name="play" size={20} color="#34C759" />
-                    <Text style={styles.useButtonText}>Bruk</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDeleteTemplate(template)}
-                  >
-                    <Ionicons name="trash-outline" size={20} color="#ff4444" />
-                  </TouchableOpacity>
-                </View>
-              </TouchableOpacity>
-            </View>
-          ))
+          <View style={styles.templateGrid}>
+            {templates.map((template) => renderTemplateItem(template))}
+          </View>
         )}
       </ScrollView>
 
@@ -320,64 +362,58 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
   },
-  // Nye stiler for template cards
+  // Nye stiler for grid layout
+  templateGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 32,
+  },
+  templateGridItem: {
+    width: '47%', // To kolonner med litt spacing
+  },
   templateCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
-    marginHorizontal: 20,
-    marginBottom: 12,
+    padding: 16,
+    minHeight: 140,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
-  templateContent: {
-    padding: 16,
+  templateHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
+    marginBottom: 8,
   },
-  templateInfo: {
+  menuButton: {
+    padding: 4,
+  },
+  templateContent: {
     flex: 1,
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   templateName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
-    marginBottom: 4,
+    textAlign: 'center',
   },
-  templateExercises: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+  templateFooter: {
+    gap: 6,
   },
-  templateDate: {
-    fontSize: 12,
-    color: '#999',
-  },
-  templateActions: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  useButton: {
-    backgroundColor: '#f0f8f0',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  templateStat: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  useButtonText: {
-    color: '#34C759',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  deleteButton: {
-    backgroundColor: '#fff5f5',
-    borderRadius: 8,
-    padding: 8,
+  templateStatText: {
+    fontSize: 12,
+    color: '#666',
+    flex: 1,
   },
 });

@@ -47,6 +47,7 @@ export interface Set {
     reps: number;
     weight: number;
     restTime: number;
+    completed: boolean;
 }
 
 export interface Activity {
