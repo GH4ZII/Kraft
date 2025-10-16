@@ -1,12 +1,13 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { auth } from "@/services/firebase";
-import { createWorkout, createActivity } from "@/services/database";
+import { createWorkout, createActivity, getUserWorkoutTemplates, deleteWorkoutTemplate, WorkoutTemplate } from "@/services/database";
 import { router } from "expo-router";
 import ExercisePickerModal from "./ExercisePickerModal";
 import { SwipeListView } from 'react-native-swipe-list-view';
+import { createWorkoutTemplate } from "@/services/database";
 
 type Set = {
   id: string;
@@ -23,17 +24,70 @@ type Exercise = {
 interface WorkoutModalProps {
   visible: boolean;
   onClose: () => void;
+  initialTemplate?: WorkoutTemplate; // Ny prop for å laste inn mal
 }
 
-export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
+export default function WorkoutModal({ visible, onClose, initialTemplate }: WorkoutModalProps) {
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [workoutName, setWorkoutName] = useState("");
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [saving, setSaving] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  // Legg til useEffect for å laste inn mal data
+  useEffect(() => {
+    if (initialTemplate && visible) {
+      setWorkoutName(initialTemplate.name);
+      setExercises(initialTemplate.exercises.map(exercise => ({
+        ...exercise,
+        sets: exercise.sets.map(set => ({
+          ...set,
+          id: Date.now().toString() + Math.random().toString(36).substr(2, 9) // Generer ny ID for hvert sett
+        }))
+      })));
+    }
+  }, [initialTemplate, visible]);
 
   // For å lagre som mal
-  const saveAsTemplate = () => {
-    Alert.alert("Lagre som mal", "Denne funksjonen kommer snart!");
+  const saveAsTemplate = async () => {
+    if (!auth.currentUser) return;
+
+    if (exercises.length === 0) {
+      Alert.alert("Feil", "Legg til minst én øvelse før du lagrer som mal");
+      return;
+    }
+
+    const templateName = workoutName.trim() || "Tom mal";
+    
+    Alert.alert(
+      "Lagre som mal",
+      `Vil du lagre "${templateName}" som mal?`,
+      [
+        { text: "Avbryt", style: "cancel" },
+        {
+          text: "Lagre",
+          onPress: async () => {
+            setSavingTemplate(true);
+            try {
+              await createWorkoutTemplate({
+                userId: auth.currentUser!.uid,
+                name: templateName,
+                exercises: exercises,
+                createdAt: new Date(),
+              });
+              
+              Alert.alert("Suksess", "Mal lagret!");
+              resetWorkout();
+              onClose();
+            } catch (error: any) {
+              Alert.alert("Feil", error.message || "Kunne ikke lagre mal");
+            } finally {
+              setSavingTemplate(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   // For å starte økt
@@ -346,9 +400,15 @@ export default function WorkoutModal({ visible, onClose }: WorkoutModalProps) {
 
         {/* Modal Footer */}
         <View style={styles.modalFooter}>
-          <TouchableOpacity style={styles.saveTemplateButton} onPress={saveAsTemplate}>
+          <TouchableOpacity 
+            style={[styles.saveTemplateButton, savingTemplate && styles.startWorkoutButtonDisabled]} 
+            onPress={saveAsTemplate}
+            disabled={savingTemplate}
+          >
             <Ionicons name="document-text-outline" size={20} color="#000" />
-            <Text style={styles.saveTemplateButtonText}>Lagre som mal</Text>
+            <Text style={styles.saveTemplateButtonText}>
+              {savingTemplate ? "Lagrer..." : "Lagre som mal"}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.startWorkoutButton, saving && styles.startWorkoutButtonDisabled]}

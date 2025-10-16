@@ -355,3 +355,53 @@ export const getUserFriendsLeaderboard = async (
   // Filtrer til kun venner + deg selv
   return allUsers.filter((user) => user.id === userId || friendIds.includes(user.id));
 };
+
+// ============== WORKOUT TEMPLATE FUNCTIONS ==============
+
+export interface WorkoutTemplate {
+    id: string;
+    userId: string;
+    name: string;
+    exercises: Exercise[];
+    createdAt: Date;
+    lastUsed?: Date;
+}
+
+export const createWorkoutTemplate = async (template: Omit<WorkoutTemplate, "id">) => {
+    const templateRef = collection(firestore, "workoutTemplates");
+    const docRef = await addDoc(templateRef, {
+        ...template,
+        createdAt: Timestamp.fromDate(template.createdAt),
+        lastUsed: template.lastUsed ? Timestamp.fromDate(template.lastUsed) : null,
+    });
+    return docRef.id;
+};
+
+export const getUserWorkoutTemplates = async (userId: string): Promise<WorkoutTemplate[]> => {
+    const templatesRef = collection(firestore, "workoutTemplates");
+    const q = query(
+        templatesRef,
+        where("userId", "==", userId),
+        orderBy("createdAt", "desc")
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt.toDate(),
+        lastUsed: doc.data().lastUsed ? doc.data().lastUsed.toDate() : null,
+    })) as WorkoutTemplate[];
+};
+
+export const updateTemplateLastUsed = async (templateId: string) => {
+    const templateRef = doc(firestore, "workoutTemplates", templateId);
+    await updateDoc(templateRef, {
+        lastUsed: Timestamp.now(),
+    });
+};
+
+export const deleteWorkoutTemplate = async (templateId: string) => {
+    const templateRef = doc(firestore, "workoutTemplates", templateId);
+    await deleteDoc(templateRef);
+};
