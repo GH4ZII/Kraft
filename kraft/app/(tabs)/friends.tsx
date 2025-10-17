@@ -10,13 +10,15 @@ import {
   isFollowing, 
   getFollowing,
   User,
-  Friend 
+  Friend,
+  getUserProfile,
 } from "@/services/database";
 
 export default function Friends() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [following, setFollowing] = useState<Friend[]>([]);
+  const [followingUsers, setFollowingUsers] = useState<User[]>([]); // Legg til denne
   const [loading, setLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [followingStatus, setFollowingStatus] = useState<Record<string, boolean>>({});
@@ -33,6 +35,11 @@ export default function Friends() {
     try {
       const friends = await getFollowing(user.uid);
       setFollowing(friends);
+
+      // Hent brukerinformasjon for alle venner
+      const userPromises = friends.map(friend => getUserProfile(friend.friendId));
+      const users = await Promise.all(userPromises);
+      setFollowingUsers(users.filter(user => user !== null) as User[]);
 
       // Hent follow-status for alle brukere
       const statusMap: Record<string, boolean> = {};
@@ -149,19 +156,20 @@ export default function Friends() {
   };
 
   const renderFollowingItem = ({ item }: { item: Friend }) => {
-    // Vi trenger brukerinfo for friend-objektet
-    // For nå viser vi bare friendId, men vi kunne hente full brukerinfo
+    // Finn brukerinformasjonen for denne vennen
+    const userInfo = followingUsers.find(user => user.id === item.friendId);
+
     return (
       <View style={styles.userItem}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {item.friendId.charAt(0).toUpperCase()}
+            {userInfo?.displayName?.charAt(0).toUpperCase() || item.friendId.charAt(0).toUpperCase()}
           </Text>
         </View>
         
         <View style={styles.userInfo}>
-          <Text style={styles.userName}>{item.friendId}</Text>
-          <Text style={styles.userEmail}>Bruker ID: {item.friendId}</Text>
+          <Text style={styles.userName}>{userInfo?.displayName || item.friendId}</Text>
+          <Text style={styles.userEmail}>{userInfo?.email || `Bruker ID: ${item.friendId}`}</Text>
         </View>
         
         <TouchableOpacity

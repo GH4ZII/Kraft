@@ -9,7 +9,13 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourcompany.kraft",
+      "buildNumber": "1",
+      "infoPlist": {
+        "CFBundleDisplayName": "Kraft",
+        "CFBundleName": "Kraft"
+      }
     },
     "android": {
       "adaptiveIcon": {

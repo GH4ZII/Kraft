@@ -1,16 +1,29 @@
-// app/(auth)/sign-in.tsx
-import { View, Text, TextInput, Button } from "react-native";
+import { View, Text, TextInput, Button, Platform } from "react-native";
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/services/firebase";
 import { Link, router } from "expo-router";
 
 export default function SignIn() {
-  const [email, setEmail] = useState("admin@example.com"); // Forhåndsutfylt email
-  const [pass, setPass] = useState("Password1."); // Forhåndsutfylt passord
+  // Platform-spesifikke verdier
+  const isIOS = Platform.OS === 'ios';
+  const defaultEmail = isIOS 
+    ? process.env.EXPO_PUBLIC_LOCAL_EMAIL || "admin@example.com"
+    : process.env.EXPO_PUBLIC_DEFAULT_EMAIL || "admin@example.com";
+  const defaultPassword = isIOS 
+    ? process.env.EXPO_PUBLIC_LOCAL_PASSWORD || "Password1."
+    : process.env.EXPO_PUBLIC_DEFAULT_PASSWORD || "Password1.";
+  const emailPlaceholder = isIOS 
+    ? process.env.EXPO_PUBLIC_LOCAL_EMAIL || "admin@example.com"
+    : process.env.EXPO_PUBLIC_DEFAULT_EMAIL || "admin@example.com";
+  const passwordPlaceholder = isIOS 
+    ? process.env.EXPO_PUBLIC_LOCAL_PASSWORD || "Password1."
+    : process.env.EXPO_PUBLIC_DEFAULT_PASSWORD || "Password1.";
+
+  const [email, setEmail] = useState(defaultEmail);
+  const [pass, setPass] = useState(defaultPassword);
   const [err, setErr] = useState("");
 
- // 
   const submit = async () => {
     setErr("");
     try {
@@ -26,7 +39,7 @@ export default function SignIn() {
       <Text style={{ fontSize: 24, fontWeight: "700" }}>Welcome back</Text>
       {!!err && <Text style={{ color: "tomato" }}>{err}</Text>}
       <TextInput
-        placeholder="Eksempel: test@example.com"
+        placeholder={emailPlaceholder}
         autoCapitalize="none"
         keyboardType="email-address"
         value={email}
@@ -34,7 +47,7 @@ export default function SignIn() {
         style={{ borderWidth: 1, padding: 12, borderRadius: 8, color: "#000" }}
       />
       <TextInput
-        placeholder="Eksempel: password123"
+        placeholder={passwordPlaceholder}
         secureTextEntry
         value={pass}
         onChangeText={setPass}
@@ -42,7 +55,7 @@ export default function SignIn() {
       />
       <Button title="Sign in" onPress={submit} />
       <Link href="/(auth)/sign-up" style={{ marginTop: 12 }}>
-        Don’t have an account? Create one
+        Don't have an account? Create one
       </Link>
     </View>
   );
