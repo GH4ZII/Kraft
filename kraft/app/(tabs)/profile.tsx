@@ -1,9 +1,11 @@
-import { View, Text, Switch, Button } from "react-native";
+import { View, Text, Switch, Button, Alert } from "react-native";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "firebase/auth";
-import { auth, db } from "@/services/firebase";
+import { auth, firestore } from "@/services/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -13,7 +15,7 @@ export default function Profile() {
   useEffect(() => {
     const run = async () => {
       if (!user) return;
-      const snap = await getDoc(doc(db, "users", user.uid));
+      const snap = await getDoc(doc(firestore, "users", user.uid));
       if (snap.exists()) {
         const u = snap.data() as any;
         setHideWeights(!!u.hideWeights);
@@ -27,7 +29,25 @@ export default function Profile() {
     if (!user) return;
     const newVal = !hideWeights;
     setHideWeights(newVal);
-    await updateDoc(doc(db, "users", user.uid), { hideWeights: newVal });
+    await updateDoc(doc(firestore, "users", user.uid), { hideWeights: newVal });
+  };
+
+  const handleSignOut = async () => {
+    try {
+      // Fjern lagrede påloggingsdetaljer
+      await AsyncStorage.removeItem('rememberMe');
+      await AsyncStorage.removeItem('savedEmail');
+      await AsyncStorage.removeItem('savedPassword');
+      
+      // Logg ut fra Firebase
+      await signOut(auth);
+      
+      // Naviger til login-siden
+      router.replace("/(auth)/sign-in");
+    } catch (error) {
+      console.error("Sign out error:", error);
+      Alert.alert("Feil", "Kunne ikke logge ut. Prøv igjen.");
+    }
   };
 
   return (
@@ -37,7 +57,7 @@ export default function Profile() {
         <Text>Hide weights publicly</Text>
         <Switch value={hideWeights} onValueChange={toggle} />
       </View>
-      <Button title="Sign out" onPress={() => signOut(auth)} />
+      <Button title="Sign out" onPress={handleSignOut} />
     </View>
   );
 }
