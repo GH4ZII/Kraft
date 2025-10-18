@@ -10,11 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourcompany.kraft",
+      "bundleIdentifier": "com.ghazi.kraft",
       "buildNumber": "1",
       "infoPlist": {
         "CFBundleDisplayName": "Kraft",
-        "CFBundleName": "Kraft"
+        "CFBundleName": "Kraft",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

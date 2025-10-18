@@ -26,7 +26,7 @@ export default function SignUp() {
         displayName: username.trim(),
       });
       
-      router.replace("/(tabs)/");
+      router.replace("/(tabs)");
     } catch (e: any) {
       setErr(e.message ?? "Sign-up failed");
     }
